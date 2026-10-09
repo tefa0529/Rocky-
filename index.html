@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🚀 小火箭探險號</title>
+  <style>
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body {
+      background: radial-gradient(circle at top, #1b263b, #0d1b2a, #050c14);
+      color: #fff;
+      min-height: 100vh;
+      margin: 0;
+      padding: 16px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+    .container {
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    }
+    h2 { text-align: center; margin: 0 0 6px 0; color: #ffd166; font-size: 22px; }
+    p.subtitle { text-align: center; margin: 0 0 24px 0; color: #e0e1dd; font-size: 13px; }
+    
+    /* 🚀 動態火箭飛行航線區塊 */
+    .flight-area {
+      position: relative;
+      margin: 45px 10px 30px;
+      height: 60px;
+    }
+    .track-line {
+      position: absolute;
+      top: 50%;
+      left: 15px;
+      right: 15px;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 3px;
+      transform: translateY(-50%);
+      z-index: 1;
+    }
+    .track-line-progress {
+      position: absolute;
+      top: 50%;
+      left: 15px;
+      height: 6px;
+      background: linear-gradient(90deg, #06d6a0, #ffd166);
+      border-radius: 3px;
+      transform: translateY(-50%);
+      z-index: 1;
+      width: 0%;
+      transition: width 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .nodes-container {
+      display: flex;
+      justify-content: space-between;
+      position: absolute;
+      inset: 0;
+      align-items: center;
+      z-index: 2;
+    }
+    .node-spot {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #1b263b;
+      border: 2px dashed #778da9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: bold;
+      color: #778da9;
+      transition: all 0.4s ease;
+    }
+    .node-spot.passed {
+      border: 2px solid #06d6a0;
+      background: rgba(6, 214, 160, 0.25);
+      color: #06d6a0;
+    }
+    .node-spot.planet-spot {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      border: 2px dashed #ffd166;
+      font-size: 22px;
+      background: #1b263b;
+    }
+    .node-spot.planet-spot.reached {
+      border: 2px solid #ffd166;
+      background: rgba(255, 209, 102, 0.3);
+      box-shadow: 0 0 16px rgba(255, 209, 102, 0.6);
+    }
+
+    /* 真正滑動飛行的火箭 */
+    .flying-rocket {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      width: 44px;
+      height: 44px;
+      font-size: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transform: translate(-50%, -50%);
+      z-index: 5;
+      transition: left 0.7s cubic-bezier(0.34, 1.4, 0.64, 1), transform 0.3s;
+      filter: drop-shadow(0 0 10px rgba(255, 209, 102, 0.8));
+    }
+    .flying-rocket.launching {
+      animation: rocketThrust 0.6s infinite alternate;
+    }
+    @keyframes rocketThrust {
+      from { transform: translate(-50%, -52%) rotate(-5deg) scale(1.05); }
+      to { transform: translate(-50%, -48%) rotate(5deg) scale(1.18); }
+    }
+
+    /* 表單與按鈕 */
+    .form-group { margin-bottom: 14px; }
+    label { display: block; font-size: 13px; margin-bottom: 6px; color: #e0e1dd; }
+    input[type="text"] {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      background: rgba(0, 0, 0, 0.3);
+      color: #fff;
+      font-size: 15px;
+    }
+    input[type="text"]:focus { outline: none; border-color: #ffd166; }
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-advance { background: #06d6a0; color: #0d1b2a; }
+    .btn-advance:hover { background: #05b386; }
+    .btn-lottery {
+      background: #ffd166;
+      color: #0d1b2a;
+      font-size: 17px;
+      animation: bounce 1s infinite alternate;
+    }
+    @keyframes bounce {
+      from { transform: translateY(0); }
+      to { transform: translateY(-3px); }
+    }
+    .status-msg { text-align: center; margin-top: 10px; font-size: 13px; color: #a8dadc; }
+
+    /* 🎒 卡券抽屜與分頁切換 */
+    .section-title {
+      font-size: 16px;
+      font-weight: bold;
+      color: #ffd166;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    .tab-bar {
+      display: flex;
+      background: rgba(0, 0, 0, 0.25);
+      border-radius: 12px;
+      padding: 4px;
+      margin-bottom: 14px;
+      gap: 4px;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 8px;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      color: #adb5bd;
+      font-size: 13px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .tab-btn.active {
+      background: #ffd166;
+      color: #0d1b2a;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+    .tab-count {
+      font-size: 11px;
+      opacity: 0.85;
+      margin-left: 2px;
+    }
+
+    .coupon-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .coupon-card {
+      background: #1b263b;
+      border: 2px solid #ffd166;
+      border-radius: 14px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    .coupon-card .icon-box {
+      min-width: 58px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+    .coupon-card .icon-box .emoji {
+      font-size: 32px;
+      line-height: 1.1;
+    }
+    .coupon-card .icon-box .bopomofo {
+      font-size: 11px;
+      color: #ffd166;
+      margin-top: 3px;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+    }
+    .coupon-card .details { flex: 1; }
+    .coupon-card .details .title {
+      font-size: 15px;
+      font-weight: bold;
+      color: #fff;
+      margin-bottom: 2px;
+    }
+    .coupon-card .details .desc { font-size: 12px; color: #adb5bd; }
+    .coupon-card .details .date { font-size: 11px; color: #6c757d; margin-top: 4px; }
+    .btn-use {
+      background: #ffd166;
+      color: #0d1b2a;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: bold;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    
+    /* 已兌換反灰與蓋章效果 */
+    .coupon-card.used {
+      opacity: 0.6;
+      filter: grayscale(70%);
+      border-color: #6c757d;
+    }
+    .coupon-card.used .btn-use { display: none; }
+    .stamp {
+      display: none;
+      position: absolute;
+      right: 15px;
+      top: 50%;
+      transform: translateY(-50%) rotate(-12deg);
+      border: 3px solid #e63946;
+      color: #e63946;
+      font-size: 15px;
+      font-weight: 900;
+      padding: 4px 10px;
+      border-radius: 6px;
+      letter-spacing: 2px;
+      background: rgba(230, 57, 70, 0.12);
+      box-shadow: 0 0 10px rgba(230, 57, 70, 0.3);
+      user-select: none;
+    }
+    .coupon-card.used .stamp { display: block; }
+
+    /* 彈窗樣式 */
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(6px);
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      padding: 20px;
+    }
+    .modal.show { display: flex; }
+    .modal-content {
+      background: #1b263b;
+      border: 2px solid #ffd166;
+      border-radius: 20px;
+      padding: 22px;
+      text-align: center;
+      max-width: 360px;
+      width: 100%;
+    }
+    .reward-icon-display { font-size: 48px; margin: 8px 0 2px 0; }
+    .reward-zhuyin-display { font-size: 13px; color: #ffd166; margin-bottom: 12px; }
+    .reward-box {
+      font-size: 18px;
+      font-weight: bold;
+      color: #ffd166;
+      margin-bottom: 8px;
+    }
+    .empty-tip {
+      text-align: center;
+      font-size: 13px;
+      color: #778da9;
+      padding: 24px 0;
+    }
+    .reset-btn {
+      background: none;
+      border: none;
+      color: #778da9;
+      font-size: 11px;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- 火箭航行面板 -->
+    <div class="card">
+      <h2>🚀 小火箭探險號</h2>
+      <p class="subtitle">累積 5 格能量，登陸酷星球抽特權券！</p>
+
+      <!-- 動態飛行軌道 -->
+      <div class="flight-area" id="flightArea">
+        <div class="track-line"></div>
+        <div class="track-line-progress" id="progressLine"></div>
+        
+        <div class="nodes-container">
+          <div class="node-spot" id="spot-0">起</div>
+          <div class="node-spot" id="spot-1">1</div>
+          <div class="node-spot" id="spot-2">2</div>
+          <div class="node-spot" id="spot-3">3</div>
+          <div class="node-spot" id="spot-4">4</div>
+          <div class="node-spot" id="spot-5">5</div>
+          <div class="node-spot planet-spot" id="spot-6">🪐</div>
+        </div>
+
+        <div class="flying-rocket launching" id="flyingRocket">🚀</div>
+      </div>
+
+      <div id="actionArea">
+        <div class="form-group">
+          <label for="reasonInput">這次推進的原因（大人填寫肯定事項）：</label>
+          <input type="text" id="reasonInput" placeholder="例如：主動收好書包、幫忙擦桌子" />
+        </div>
+        <button class="btn btn-advance" onclick="advanceStep()">推進一格 🚀</button>
+      </div>
+
+      <div id="landedArea" style="display: none;">
+        <button class="btn btn-lottery" onclick="openLottery()">🎉 著陸酷星球！點擊抽獎 🎁</button>
+      </div>
+
+      <div class="status-msg" id="statusMsg">目前位置：起點準備出發</div>
+    </div>
+
+    <!-- 卡券抽屜 / 背包面板 -->
+    <div class="card">
+      <div class="section-title">
+        <span>🎒 榮譽卡券抽屜</span>
+        <button class="reset-btn" onclick="clearAllData()">重置清空</button>
+      </div>
+
+      <!-- 分頁切換鈕 -->
+      <div class="tab-bar">
+        <button class="tab-btn active" id="tabUnused" onclick="switchTab('unused')">
+          🎟️ 可使用 <span class="tab-count" id="countUnused">(0)</span>
+        </button>
+        <button class="tab-btn" id="tabUsed" onclick="switchTab('used')">
+          ✨ 已兌換 <span class="tab-count" id="countUsed">(0)</span>
+        </button>
+      </div>
+
+      <div class="coupon-list" id="couponContainer"></div>
+    </div>
+  </div>
+
+  <!-- 抽獎結果彈窗 -->
+  <div class="modal" id="rewardModal">
+    <div class="modal-content">
+      <div style="font-size: 28px;">🎊 恭喜著陸！</div>
+      <div class="reward-icon-display" id="drawnIcon">🎁</div>
+      <div class="reward-zhuyin-display" id="drawnZhuyin">&lt; ㄔㄡ ㄐㄧㄤˇ &gt;</div>
+      <div class="reward-box" id="drawnTitle">正在抽取中...</div>
+      <p id="drawnDesc" style="font-size: 13px; color: #adb5bd; margin-bottom: 20px;"></p>
+      <button class="btn btn-advance" onclick="saveCouponAndReset()">收進抽屜並重新啟航 🚀</button>
+    </div>
+  </div>
+
+  <script>
+    // ⚠️ 請替換為您的 Google Apps Script Web App 網址
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyDV8259d5Q4Llx24Jdo1sNid5ZRhCQb40nwlFImH2YH55gknihtFYPNepFyhs4hPDmBA/exec";
+
+    // 專屬卡券池
+    const COUPON_POOL = [
+      { id: "tv", icon: "📺", zhuyin: "ㄉㄧㄢˋ ㄕˋ", title: "卡通加時券", desc: "看電視或平板時間額外多 15 分鐘（限週末使用）" },
+      { id: "sleep", icon: "🌙", zhuyin: "ㄨㄢˇ ㄕㄨㄟˋ", title: "週末晚睡券", desc: "週五或週六晚上，可延後 10 分鐘上床聽故事" },
+      { id: "king", icon: "👑", zhuyin: "ㄍㄨㄛˊ ㄨㄤˊ", title: "點餐國王券", desc: "今日由你全權決定全家某一餐吃什麼" },
+      { id: "icecream", icon: "🍦", zhuyin: "ㄅㄧㄥ ㄑㄧˊ ㄌㄧㄣˊ", title: "冰淇淋點心券", desc: "在非點心時間可獲得一球冰淇淋或喜愛的零食" },
+      { id: "book", icon: "📖", zhuyin: "ㄍㄨˋ ㄕˋ ㄕㄨ", title: "故事加碼券", desc: "睡前床邊故事時間，爸爸或媽媽加碼多讀一本" },
+      { id: "game", icon: "🎮", zhuyin: "ㄉㄧㄢˋ ㄉㄨㄥˋ", title: "遊戲大師券", desc: "大人必須陪你專心玩一場 Switch、積木或桌遊" },
+      { id: "supermarket", icon: "🛒", zhuyin: "ㄔㄠ ㄕˋ", title: "超市尋寶券", desc: "逛超市或超商時，自由選一樣自己想吃的放購物車" },
+      { id: "castle", icon: "🏰", zhuyin: "ㄔㄥˊ ㄅㄠˇ", title: "神奇點子券", desc: "全家一起陪你做一件瘋狂小事（如用椅子蓋客廳城堡）" }
+    ];
+
+    let currentStep = parseInt(localStorage.getItem("rocket_step") || "0");
+    let coupons = JSON.parse(localStorage.getItem("rocket_coupons") || "[]");
+    let activeTab = "unused"; // 'unused' 或 'used'
+    let currentReason = "";
+    let drawnItem = null;
+
+    // 自動修復舊卡片沒有注音的相容性處理
+    coupons = coupons.map(c => {
+      if (!c.zhuyin) {
+        const found = COUPON_POOL.find(p => p.id === c.id || p.title === c.title);
+        if (found) c.zhuyin = found.zhuyin;
+      }
+      return c;
+    });
+
+    function saveState() {
+      localStorage.setItem("rocket_step", currentStep);
+      localStorage.setItem("rocket_coupons", JSON.stringify(coupons));
+    }
+
+    function switchTab(tab) {
+      activeTab = tab;
+      document.getElementById("tabUnused").classList.toggle("active", tab === "unused");
+      document.getElementById("tabUsed").classList.toggle("active", tab === "used");
+      renderCoupons();
+    }
+
+    function updateRocketPosition() {
+      const flightArea = document.getElementById("flightArea");
+      const targetSpot = document.getElementById(`spot-${currentStep}`);
+      const rocket = document.getElementById("flyingRocket");
+      const progressLine = document.getElementById("progressLine");
+
+      if (targetSpot && flightArea) {
+        const areaRect = flightArea.getBoundingClientRect();
+        const spotRect = targetSpot.getBoundingClientRect();
+        const centerOffset = (spotRect.left + spotRect.width / 2) - areaRect.left;
+
+        rocket.style.left = `${centerOffset}px`;
+
+        const startSpot = document.getElementById("spot-0").getBoundingClientRect();
+        const startOffset = (startSpot.left + startSpot.width / 2) - areaRect.left;
+        const width = Math.max(0, centerOffset - startOffset);
+        progressLine.style.left = `${startOffset}px`;
+        progressLine.style.width = `${width}px`;
+      }
+
+      for (let i = 0; i <= 6; i++) {
+        const spot = document.getElementById(`spot-${i}`);
+        if (i === 6) {
+          spot.className = "node-spot planet-spot" + (currentStep >= 6 ? " reached" : "");
+        } else {
+          spot.className = "node-spot" + (i <= currentStep ? " passed" : "");
+        }
+      }
+    }
+
+    function renderCoupons() {
+      const unusedList = coupons.map((c, idx) => ({ ...c, originalIndex: idx })).filter(c => !c.used);
+      const usedList = coupons.map((c, idx) => ({ ...c, originalIndex: idx })).filter(c => c.used);
+
+      document.getElementById("countUnused").innerText = `(${unusedList.length})`;
+      document.getElementById("countUsed").innerText = `(${usedList.length})`;
+
+      const displayList = activeTab === "unused" ? unusedList : usedList;
+      const container = document.getElementById("couponContainer");
+
+      if (displayList.length === 0) {
+        container.innerHTML = activeTab === "unused"
+          ? `<div class="empty-tip">目前沒有尚未使用的卡券～<br/>快開著小火箭前往酷星球抽一張吧！🚀</div>`
+          : `<div class="empty-tip">還沒有核銷過的卡券喔！</div>`;
+        return;
+      }
+
+      container.innerHTML = displayList.map(c => `
+        <div class="coupon-card ${c.used ? 'used' : ''}">
+          <div class="icon-box">
+            <div class="emoji">${c.icon}</div>
+            <div class="bopomofo">&lt;${c.zhuyin || ''}&gt;</div>
+          </div>
+          <div class="details">
+            <div class="title">${c.title}</div>
+            <div class="desc">${c.desc}</div>
+            <div class="date">${c.date} 獲得 ${c.used ? `（於 ${c.usedDate} 兌換）` : ''}</div>
+          </div>
+          ${!c.used ? `<button class="btn-use" onclick="redeemCoupon(${c.originalIndex})">大人核銷</button>` : ''}
+          <div class="stamp">已兌換</div>
+        </div>
+      `).join("");
+    }
+
+    function renderUI() {
+      updateRocketPosition();
+
+      if (currentStep >= 6) {
+        document.getElementById("actionArea").style.display = "none";
+        document.getElementById("landedArea").style.display = "block";
+        document.getElementById("statusMsg").innerText = "🎉 酷星球成功著陸！點擊抽特權券！";
+      } else {
+        document.getElementById("actionArea").style.display = "block";
+        document.getElementById("landedArea").style.display = "none";
+        document.getElementById("statusMsg").innerText = currentStep === 0
+          ? "目前位置：起點準備出發"
+          : `目前進度：第 ${currentStep} 格（距離著陸還差 ${6 - currentStep} 格）`;
+      }
+
+      renderCoupons();
+    }
+
+    async function logToSheet(step, reason, landed, reward = "") {
+      if (!SCRIPT_URL || SCRIPT_URL.includes("您的_APPS_SCRIPT_網址")) return;
+      try {
+        await fetch(SCRIPT_URL, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            timestamp: new Date().toLocaleString("zh-TW", { timeZone: "Asia/Taipei" }),
+            step: step === 6 ? "著陸 (第6格)" : (typeof step === "number" ? `第 ${step} 格` : step),
+            reason: reason,
+            landed: landed,
+            reward: reward
+          })
+        });
+      } catch (err) {
+        console.error("同步至試算表失敗:", err);
+      }
+    }
+
+    async function advanceStep() {
+      const input = document.getElementById("reasonInput");
+      const reason = input.value.trim();
+      if (!reason) {
+        alert("請輸入這次推進的原因，給孩子具體的正面肯定！");
+        return;
+      }
+      currentStep += 1;
+      currentReason = reason;
+      input.value = "";
+      saveState();
+      renderUI();
+      await logToSheet(currentStep, reason, currentStep === 6);
+    }
+
+    function openLottery() {
+      const modal = document.getElementById("rewardModal");
+      const iconEl = document.getElementById("drawnIcon");
+      const zhuyinEl = document.getElementById("drawnZhuyin");
+      const titleEl = document.getElementById("drawnTitle");
+      const descEl = document.getElementById("drawnDesc");
+      modal.classList.add("show");
+
+      let count = 0;
+      const timer = setInterval(() => {
+        const rand = COUPON_POOL[Math.floor(Math.random() * COUPON_POOL.length)];
+        iconEl.innerText = rand.icon;
+        zhuyinEl.innerText = `<${rand.zhuyin}>`;
+        titleEl.innerText = rand.title;
+        descEl.innerText = rand.desc;
+        count++;
+        if (count > 16) {
+          clearInterval(timer);
+          drawnItem = COUPON_POOL[Math.floor(Math.random() * COUPON_POOL.length)];
+          iconEl.innerText = drawnItem.icon;
+          zhuyinEl.innerText = `<${drawnItem.zhuyin}>`;
+          titleEl.innerText = drawnItem.title;
+          descEl.innerText = drawnItem.desc;
+        }
+      }, 70);
+    }
+
+    async function saveCouponAndReset() {
+      const nowStr = new Date().toLocaleDateString("zh-TW");
+      coupons.unshift({
+        id: drawnItem.id,
+        icon: drawnItem.icon,
+        zhuyin: drawnItem.zhuyin,
+        title: drawnItem.title,
+        desc: drawnItem.desc,
+        date: nowStr,
+        used: false,
+        usedDate: ""
+      });
+      await logToSheet(6, currentReason || "登陸獎勵", true, `抽中：${drawnItem.title}`);
+      
+      currentStep = 0;
+      currentReason = "";
+      drawnItem = null;
+      document.getElementById("rewardModal").classList.remove("show");
+      activeTab = "unused"; // 抽中新券自動跳回可使用頁籤
+      saveState();
+      renderUI();
+    }
+
+    async function redeemCoupon(originalIndex) {
+      const target = coupons[originalIndex];
+      const confirmUse = confirm(`確定大人要核銷【${target.title}】嗎？\n核銷後卡券將移至「已兌換」分頁。`);
+      if (!confirmUse) return;
+
+      target.used = true;
+      target.usedDate = new Date().toLocaleDateString("zh-TW");
+      saveState();
+      renderUI();
+      await logToSheet("卡券兌換", `大人核銷卡券：${target.title}`, false, `已核銷：${target.title}`);
+    }
+
+    function clearAllData() {
+      if (confirm("確定要清空所有卡券並將火箭歸零重新開始嗎？")) {
+        localStorage.
