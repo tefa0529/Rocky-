@@ -389,8 +389,8 @@
   </div>
 
   <script>
-    // ⚠️ 請填入您的 Apps Script Web App 網址
-    const SCRIPT_URL = "您的_APPS_SCRIPT_網址";
+    // 部署好的 Google Apps Script 網址
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyDV8259d5Q4Llx24Jdo1sNid5ZRhCQb40nwlFImH2YH55gknihtFYPNepFyhs4hPDmBA/exec";
 
     const COUPON_POOL = [
       { id: "tv", icon: "📺", zhuyin: "ㄉㄧㄢˋ ㄕˋ", title: "卡通加時券", desc: "看電視或平板時間額外多 15 分鐘（限週末使用）" },
@@ -424,7 +424,6 @@
         const spotRect = targetSpot.getBoundingClientRect();
         
         let centerOffset = (spotRect.left + spotRect.width / 2) - areaRect.left;
-        // 防呆備案：若瀏覽器尚未算好寬度，使用百分比安全計算
         if (isNaN(centerOffset) || centerOffset <= 0) {
           centerOffset = 16 + (currentStep / 6) * (flightArea.clientWidth - 32);
         }
@@ -509,9 +508,8 @@
       renderCoupons();
     }
 
-    // 發送資料至 Sheet
     function sendToSheet(step, reason, landed, reward = "") {
-      if (!SCRIPT_URL || SCRIPT_URL.includes("您的_APPS_SCRIPT_網址")) return;
+      if (!SCRIPT_URL) return;
       fetch(SCRIPT_URL, {
         method: "POST",
         mode: "no-cors",
@@ -526,7 +524,6 @@
       }).catch(e => console.warn("傳送 Sheet 失敗:", e));
     }
 
-    // 推進按鈕（本地即時響應，絕不卡頓）
     function advanceStep() {
       const input = document.getElementById("reasonInput");
       const reason = input.value.trim();
@@ -610,7 +607,7 @@
 
     async function fetchFromSheet() {
       const syncEl = document.querySelector(".sync-indicator");
-      if (!SCRIPT_URL || SCRIPT_URL.includes("https://script.google.com/macros/s/AKfycbyDV8259d5Q4Llx24Jdo1sNid5ZRhCQb40nwlFImH2YH55gknihtFYPNepFyhs4hPDmBA/exec")) {
+      if (!SCRIPT_URL) {
         if (syncEl) syncEl.innerText = "☁️ 本地模式";
         return;
       }
@@ -641,9 +638,7 @@
     }
 
     window.addEventListener("resize", updateRocketPosition);
-    // 首次載入先渲染本地狀態，確保火箭立刻飛到正確位置
     renderUI();
-    // 稍後再向雲端確認最新紀錄
     setTimeout(fetchFromSheet, 500);
   </script>
 </body>
