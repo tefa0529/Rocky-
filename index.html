@@ -610,7 +610,7 @@
 
     async function fetchFromSheet() {
       const syncEl = document.querySelector(".sync-indicator");
-      if (!SCRIPT_URL || SCRIPT_URL.includes("您的_APPS_SCRIPT_網址")) {
+      if (!SCRIPT_URL || SCRIPT_URL.includes("https://script.google.com/macros/s/AKfycbyDV8259d5Q4Llx24Jdo1sNid5ZRhCQb40nwlFImH2YH55gknihtFYPNepFyhs4hPDmBA/exec")) {
         if (syncEl) syncEl.innerText = "☁️ 本地模式";
         return;
       }
