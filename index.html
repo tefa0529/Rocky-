@@ -240,7 +240,8 @@
       margin-bottom: 2px;
     }
     .coupon-card .details .desc { font-size: 12px; color: #adb5bd; }
-    .coupon-card .details .date { font-size: 11px; color: #6c757d; margin-top: 4px; }
+    .coupon-card .details .date { font-size: 11px; color: #8d99ae; margin-top: 4px; line-height: 1.4; }
+    .coupon-card .details .used-note { color: #ffd166; font-weight: 500; }
     .btn-use {
       background: #ffd166;
       color: #0d1b2a;
@@ -256,8 +257,8 @@
     .btn-use:active { transform: scale(0.95); }
     
     .coupon-card.used {
-      opacity: 0.6;
-      filter: grayscale(70%);
+      opacity: 0.72;
+      filter: grayscale(65%);
       border-color: #6c757d;
     }
     .coupon-card.used .btn-use { display: none; }
@@ -277,6 +278,7 @@
       background: rgba(230, 57, 70, 0.12);
       box-shadow: 0 0 10px rgba(230, 57, 70, 0.3);
       user-select: none;
+      pointer-events: none;
     }
     .coupon-card.used .stamp { display: block; }
 
@@ -305,7 +307,7 @@
     .modal-actions {
       display: flex;
       gap: 10px;
-      margin-top: 18px;
+      margin-top: 16px;
     }
     .btn-cancel {
       background: #415a77;
@@ -399,13 +401,16 @@
     </div>
   </div>
 
-  <!-- 自訂大人核銷確認彈窗（不受瀏覽器攔截） -->
+  <!-- 自訂大人核銷確認彈窗（含核銷原因輸入框） -->
   <div class="modal" id="redeemModal">
     <div class="modal-content">
-      <div style="font-size: 24px; margin-bottom: 8px;">大人核銷確認</div>
+      <div style="font-size: 22px; font-weight: bold; margin-bottom: 6px;">大人核銷確認</div>
       <div class="reward-icon-display" id="redeemIcon">🎟️</div>
       <div class="reward-box" id="redeemTitle">卡券名稱</div>
-      <p style="font-size: 13px; color: #adb5bd;">確定要核銷這張特權券嗎？<br/>核銷後將蓋上「已兌換」印章並移至已兌換分頁。</p>
+      <div class="form-group" style="text-align: left; margin-top: 14px;">
+        <label for="redeemReasonInput">核銷原因／兌換內容備註（選填）：</label>
+        <input type="text" id="redeemReasonInput" placeholder="例如：週末看電視多15分鐘、換一球冰淇淋" />
+      </div>
       <div class="modal-actions">
         <button class="btn btn-cancel" onclick="closeRedeemModal()">取消</button>
         <button class="btn btn-advance" onclick="confirmRedeem()">確定核銷</button>
@@ -501,7 +506,10 @@
           <div class="details">
             <div class="title">${c.title}</div>
             <div class="desc">${c.desc}</div>
-            <div class="date">${c.date} 獲得 ${c.used ? `（於 ${c.usedDate} 兌換）` : ''}</div>
+            <div class="date">
+              ${c.date} 獲得
+              ${c.used ? `<br/><span class="used-note">於 ${c.usedDate} 兌換${c.usedReason ? `（${c.usedReason}）` : ''}</span>` : ''}
+            </div>
           </div>
           ${!c.used ? `<button class="btn-use" onclick="openRedeemModal(${c.originalIndex})">大人核銷</button>` : ''}
           <div class="stamp">已兌換</div>
@@ -605,7 +613,8 @@
         desc: drawnItem.desc,
         date: nowStr,
         used: false,
-        usedDate: ""
+        usedDate: "",
+        usedReason: ""
       });
       
       const drawnTitle = drawnItem.title;
@@ -621,7 +630,7 @@
       sendToSheet("重置", "火箭重置啟航", false, "");
     }
 
-    // 開啟自訂核銷視窗
+    // 開啟自訂核銷視窗並清空上次輸入
     function openRedeemModal(originalIndex) {
       pendingRedeemIndex = originalIndex;
       const target = coupons[originalIndex];
@@ -629,6 +638,7 @@
 
       document.getElementById("redeemIcon").innerText = target.icon;
       document.getElementById("redeemTitle").innerText = target.title;
+      document.getElementById("redeemReasonInput").value = "";
       document.getElementById("redeemModal").classList.add("show");
     }
 
@@ -642,11 +652,19 @@
       const target = coupons[pendingRedeemIndex];
       if (!target) return;
 
+      const reasonInput = document.getElementById("redeemReasonInput").value.trim();
       target.used = true;
       target.usedDate = new Date().toLocaleDateString("zh-TW");
+      target.usedReason = reasonInput;
+
       saveLocal();
       renderUI();
-      sendToSheet("卡券兌換", `大人核銷卡券：${target.title}`, false, `已核銷：${target.title}`);
+
+      const sheetReason = reasonInput
+        ? `大人核銷卡券：${target.title}（${reasonInput}）`
+        : `大人核銷卡券：${target.title}`;
+
+      sendToSheet("卡券兌換", sheetReason, false, `已核銷：${target.title}`);
       closeRedeemModal();
     }
 
